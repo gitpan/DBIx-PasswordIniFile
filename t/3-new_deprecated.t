@@ -8,11 +8,10 @@ use Config::IniFiles;
 use DBIx::PasswordIniFile;
 
 $ini_file = File::Spec->catfile('.','t','new.ini');
+$config = new Config::IniFiles;
 
-$config = new Config::IniFiles(-file => $ini_file);
-
-$section = {
-    driver => 'MYSQL',
+%h = (
+    driver => 'DRIVER',
     database => 'DATABASE',
     host => 'HOST',
     port => 'PORT',
@@ -22,13 +21,13 @@ $section = {
     # Not managed by DBIx::PasswordIniFile
     dsn => 'DSN',
     table => 'TABLE'
-};
+);
 
-$section_attributes = {
+%hattr = (
     attribute1 => 'value1',
     attribute2 => 'value2',
     attribute3 => 'value3'
-};
+);
 
 $section_names = ['connect', 'connection', 'database', 'db', 'dsn', 'virtual user'];
 
@@ -40,13 +39,16 @@ $virtual_user = new DBIx::PasswordIniFile(-file => $ini_file, -section => 'any_s
 ok( ref($virtual_user) eq 'DBIx::PasswordIniFile', 
     'new. section=any_section');
 
-#print "$_ => ",$vu->{$_},"\n" for (keys %$vu); 
-
 ok(    exists $virtual_user->{config_} 
     && ref($virtual_user->{config_})  eq 'Config::IniFiles'
  
     && exists $virtual_user->{section_}  
     && $virtual_user->{section_} eq 'any_section'
+ 
+    && exists $virtual_user->{key_}  
+ 
+    && exists $virtual_user->{cipher_}  
+    && $virtual_user->{cipher_} eq 'Blowfish'
  
     && exists $virtual_user->{dbh_}
 
@@ -67,13 +69,18 @@ foreach my $section ( @$section_names )
     ok( ref($virtual_user) eq 'DBIx::PasswordIniFile', 
         "new. section=$section");
 
-    ok( exists $virtual_user->{config_}  && 
-        ref($virtual_user->{config_}) eq 'Config::IniFiles' &&
+    ok(    exists $virtual_user->{config_}  
+        && ref($virtual_user->{config_}) eq 'Config::IniFiles'
 
-        exists $virtual_user->{section_}  && 
-        $virtual_user->{section_} eq $section &&
+        && exists $virtual_user->{section_}  
+        && $virtual_user->{section_} eq $section
+ 
+        && exists $virtual_user->{key_}  
+ 
+        && exists $virtual_user->{cipher_}  
+        && $virtual_user->{cipher_} eq 'Blowfish'
 
-        exists $virtual_user->{dbh_},
+        && exists $virtual_user->{dbh_},
 
         "object. section=$section");
 }
@@ -97,16 +104,17 @@ sub createIniFile
     $config->AddSection("${section_name}_attributes");
 
     my($par,$val);
-    while( ($par,$val) = each %$section )
+    while( ($par,$val) = each %h )
     {
         $config->newval($section_name,$par,$val);
     }
 
-    while( ($par,$val) = each %$section_attributes )
+    while( ($par,$val) = each %hattr )
     {
         $config->newval("${section_name}_attributes",$par,$val);
     }
     
+    $config->SetFileName( $ini_file );
     $config->RewriteConfig();
 }
 
